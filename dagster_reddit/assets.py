@@ -1,13 +1,15 @@
-from dagster import asset, AssetExecutionContext, MetadataValue
+from typing import Literal
 
-from .models import Reddit, RedditChild
+from dagster import asset, AssetExecutionContext, MetadataValue, In, AssetIn, DagsterType
+
+from .models import Reddit
 import pandas as pd
 
 
-@asset(io_manager_key='db_io_manager')
+@asset(io_manager_key='db_io_manager', group_name='posts')
 def reddit_data(context: AssetExecutionContext) -> pd.DataFrame:
     reddit = Reddit()
-    data = reddit.get_page('Python')
+    data = reddit.get_page('Python', 'hot')
     children = Reddit.get_children(data)
     df = pd.DataFrame(child.dict() for child in children)
 
@@ -19,9 +21,23 @@ def reddit_data(context: AssetExecutionContext) -> pd.DataFrame:
     return df
 
 
-@asset
-def get_best_new_posts(context: AssetExecutionContext, reddit_data: pd.DataFrame):
-    sorted_data = reddit_data.sort_values(by=['upvote_ratio'], ascending=False)
+@asset(group_name='posts', ins={
+    'posts': AssetIn(key='reddit_data')
+})
+def get_best_posts(context: AssetExecutionContext, posts: pd.DataFrame):
+    sorted_data = posts.sort_values(by=['ups', 'upvote_ratio'], ascending=False)
+    context.add_output_metadata(
+        metadata={
+            "preview": MetadataValue.md(sorted_data.head().to_markdown())
+        }
+    )
+
+
+@asset(group_name='posts', ins={
+    'posts': AssetIn(key='reddit_data')
+})
+def get_actual_posts(context: AssetExecutionContext, posts: pd.DataFrame):
+    sorted_data = posts.sort_values(by=['created', 'ups'], ascending=False)
     context.add_output_metadata(
         metadata={
             "preview": MetadataValue.md(sorted_data.head().to_markdown())
