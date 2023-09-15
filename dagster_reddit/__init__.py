@@ -1,14 +1,12 @@
 import os
 
-from dagster import Definitions, load_assets_from_modules, config_from_yaml_strings, define_asset_job, AssetSelection, \
-    ScheduleDefinition
-from dagster_postgres import DagsterPostgresStorage
+from dagster import Definitions, load_assets_from_modules, define_asset_job, AssetSelection, ScheduleDefinition, EnvVar
 from dagster_postgres.utils import get_conn_string
+from dagster_aws.s3 import S3Resource
 
 from . import assets
 from .database import postgres_io_manager
-
-# from .jobs import reddit_parse_job
+from .jobs import reddit_parse_job
 
 all_assets = load_assets_from_modules([assets])
 
@@ -17,10 +15,11 @@ posts_schedule = ScheduleDefinition('hourly_posts', job=reddit_posts, cron_sched
 
 defs = Definitions(
     assets=all_assets,
-    jobs=[reddit_posts],
+    jobs=[reddit_posts, reddit_parse_job],
     schedules=[posts_schedule],
 
     resources={
+        's3': S3Resource(endpoint_url='http://s3.k9a8ops.online', bucket=EnvVar('S3_BUCKET'), region_name='us-east-1'),
         'db_io_manager': postgres_io_manager.configured(
             get_conn_string(
                 os.getenv('DAGSTER_PG_USERNAME'),

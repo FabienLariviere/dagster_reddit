@@ -1,6 +1,5 @@
-from typing import Literal
-
-from dagster import asset, AssetExecutionContext, MetadataValue, In, AssetIn, DagsterType
+from dagster import asset, AssetExecutionContext, MetadataValue, In, AssetIn, DagsterType, EnvVar
+from dagster_aws.s3 import S3Resource
 
 from .models import Reddit
 import pandas as pd
@@ -36,7 +35,9 @@ def get_best_posts(context: AssetExecutionContext, posts: pd.DataFrame):
 @asset(group_name='posts', ins={
     'posts': AssetIn(key='reddit_data')
 })
-def get_actual_posts(context: AssetExecutionContext, posts: pd.DataFrame):
+def get_actual_posts(context: AssetExecutionContext, posts: pd.DataFrame, s3: S3Resource):
+    client = s3.get_client()
+
     sorted_data = posts.sort_values(by=['created', 'ups'], ascending=False)
     context.add_output_metadata(
         metadata={

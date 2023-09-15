@@ -7,6 +7,7 @@ setup(
         "dagster",
         "dagster-cloud",
         "dagster-postgres",
+        "dagster-aws",
         "pandas"
     ],
     extras_require={"dev": ["dagster-webserver", "pytest"]},
