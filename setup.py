@@ -8,7 +8,8 @@ setup(
         "dagster-cloud",
         "dagster-postgres",
         "dagster-aws",
-        "pandas"
+        "pandas",
+        "telebot"
     ],
     extras_require={"dev": ["dagster-webserver", "pytest"]},
 )
